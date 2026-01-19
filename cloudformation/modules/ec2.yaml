@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EC2 module
+
+Parameters:
+  PublicSubnetId:
+    Type: String
+
+  PrivateSubnetId:
+    Type: String
+
+  PublicSgId:
+    Type: String
+
+  PrivateSgId:
+    Type: String
+
+  AmiId:
+    Type: AWS::EC2::Image::Id
+
+  InstanceType:
+    Type: String
+    Default: t3.micro
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  PublicInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmiId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          AssociatePublicIpAddress: true
+          SubnetId: !Ref PublicSubnetId
+          GroupSet:
+            - !Ref PublicSgId
+      Tags:
+        - Key: Name
+          Value: Public-EC2
+
+  PrivateInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmiId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          AssociatePublicIpAddress: false
+          SubnetId: !Ref PrivateSubnetId
+          GroupSet:
+            - !Ref PrivateSgId
+      Tags:
+        - Key: Name
+          Value: Private-EC2
+
+Outputs:
+  PublicInstanceId:
+    Value: !Ref PublicInstance
+
+  PublicInstancePublicIp:
+    Value: !GetAtt PublicInstance.PublicIp
+
+  PrivateInstanceId:
+    Value: !Ref PrivateInstance

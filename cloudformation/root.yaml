@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Root stack (nested): vpc, security groups, ec2.
+
+Parameters:
+  VpcCidr:
+    Type: String
+    Default: 10.0.0.0/16
+
+  PublicSubnetCidr:
+    Type: String
+    Default: 10.0.1.0/24
+
+  PrivateSubnetCidr:
+    Type: String
+    Default: 10.0.2.0/24
+
+  AllowedSshCidr:
+    Type: String
+    Description: CIDR allowed to SSH into the public EC2 (e.g. 1.2.3.4/32)
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 Key Pair
+
+  AmiId:
+    Type: AWS::EC2::Image::Id
+    Description: AMI ID for both instances
+
+  InstanceType:
+    Type: String
+    Default: t3.micro
+
+  TemplatesS3Bucket:
+    Type: String
+    Description: S3 bucket used to upload nested templates via aws cloudformation package
+
+Resources:
+  Networking:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplatesS3Bucket}.s3.${AWS::Region}.amazonaws.com/cloudformation/modules/vpc.yaml
+      Parameters:
+        VpcCidr: !Ref VpcCidr
+        PublicSubnetCidr: !Ref PublicSubnetCidr
+        PrivateSubnetCidr: !Ref PrivateSubnetCidr
+
+  Security:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplatesS3Bucket}.s3.${AWS::Region}.amazonaws.com/cloudformation/modules/security_groups.yaml
+      Parameters:
+        VpcId: !GetAtt Networking.Outputs.VpcId
+        AllowedSshCidr: !Ref AllowedSshCidr
+
+  Compute:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplatesS3Bucket}.s3.${AWS::Region}.amazonaws.com/cloudformation/modules/ec2.yaml
+      Parameters:
+        PublicSubnetId: !GetAtt Networking.Outputs.PublicSubnetId
+        PrivateSubnetId: !GetAtt Networking.Outputs.PrivateSubnetId
+        PublicSgId: !GetAtt Security.Outputs.PublicSgId
+        PrivateSgId: !GetAtt Security.Outputs.PrivateSgId
+        AmiId: !Ref AmiId
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyName
+
+Outputs:
+  VpcId:
+    Value: !GetAtt Networking.Outputs.VpcId
+
+  PublicInstancePublicIp:
+    Value: !GetAtt Compute.Outputs.PublicInstancePublicIp
+
+  PublicInstanceId:
+    Value: !GetAtt Compute.Outputs.PublicInstanceId
+
+  PrivateInstanceId:
+    Value: !GetAtt Compute.Outputs.PrivateInstanceId

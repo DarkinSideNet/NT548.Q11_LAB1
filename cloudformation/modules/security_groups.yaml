@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Security groups module
+
+Parameters:
+  VpcId:
+    Type: String
+
+  AllowedSshCidr:
+    Type: String
+
+Resources:
+  PublicSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: public-ssh-sg
+      GroupDescription: Public security group allowing SSH from AllowedSshCidr
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AllowedSshCidr
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: public-ssh-sg
+
+  PrivateSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: private-ssh-sg
+      GroupDescription: Private security group allowing SSH only from PublicSg
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref PublicSg
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: private-ssh-sg
+
+  DefaultBaselineSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: default-baseline-sg
+      GroupDescription: Default/baseline security group for this VPC
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: default-baseline-sg
+
+Outputs:
+  PublicSgId:
+    Value: !Ref PublicSg
+
+  PrivateSgId:
+    Value: !Ref PrivateSg
+
+  DefaultSgId:
+    Value: !Ref DefaultBaselineSg
