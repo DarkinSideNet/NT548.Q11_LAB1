@@ -40,6 +40,7 @@ aws --region us-east-1 cloudformation deploy \
 		KeyName=Terreform-key \
 		AmiId=ami-0c398cb65a93047f2 \
 		InstanceType=t3.micro
+	--capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
 ```
 
 Nếu bạn đã cấu hình region mặc định (`aws configure`), có thể bỏ `--region us-east-1`.
